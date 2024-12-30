@@ -57,8 +57,11 @@ def _get(target: dict, keys: tuple[str, ...]):
 def _load_default():
     global _default_loaded
     if not _default_loaded:
-        with open(_default_file_path, "r") as f:
-            _merge(_default_config, yaml.safe_load(f))
+        try:
+            with open(_default_file_path, "r") as f:
+                _merge(_default_config, yaml.safe_load(f))
+        except FileNotFoundError:
+            pass
         _default_loaded = True
 
 
