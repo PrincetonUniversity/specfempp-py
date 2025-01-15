@@ -41,7 +41,24 @@ def _merge(dict1, dict2):
             dict1[key] = dict2[key]
 
 
-def _get(target: dict, keys: tuple[str, ...]):
+def _set(target: dict, keys: list[str], val):
+    if len(keys) == 0:
+        raise ValueError("At least one key is required")
+
+    if keys[0] not in target:
+        target[keys[0]] = {}    
+
+    if len(keys) == 1:
+        target[keys[0]] = val
+
+    else:
+        if not isinstance(target[keys[0]], dict):
+            raise ValueError(f"Key {keys[0]} is not a dictionary", target, keys)
+
+        _set(target[keys[0]], keys[1:], val)
+
+
+def _get(target: dict, keys: list[str]):
     if len(keys) == 0:
         raise ValueError("At least one key is required")
 
@@ -49,7 +66,7 @@ def _get(target: dict, keys: tuple[str, ...]):
         if len(keys) == 1:
             return target[keys[0]]
 
-        return _get(target, keys[1:])
+        return _get(target[keys[0]], keys[1:])
 
     return None
 
@@ -65,15 +82,15 @@ def _load_default():
         _default_loaded = True
 
 
-def set_par(pars: ParameterDict):
+def set_par(keys: str, val):
     """Set runtime parameters."""
-    _merge(_runtime_config, {"parameters": pars})
+    _set(_runtime_config['parameters'], keys.split('.'), val)
 
 
-def set_default_par(pars: ParameterDict):
+def set_default_par(keys: str, val):
     """Set default parameters."""
     _load_default()
-    _merge(_default_config, {"parameters": pars})
+    _set(_default_config['default-parameters'], keys.split('.'), val)
 
 
 def load_par(src: str):
@@ -90,14 +107,28 @@ def load_default_par(src: str):
         _merge(_default_config, yaml.safe_load(f))
 
 
-def get_par(*keys: str):
+def save_par(dst: str):
+    """Load runtime parameters from a YAML file."""
+    with open(dst, "w") as f:
+        yaml.dump(_runtime_config, f, sort_keys=False)
+
+
+def save_default_par(dst: str):
+    """Load default parameters from a YAML file."""
+    global _default_loaded
+    _default_loaded = True
+    with open(dst, "w") as f:
+        yaml.dump(_default_config, f, sort_keys=False)
+
+
+def get_par(keys: str):
     """Get a runtime parameter."""
-    return _get(_runtime_config, keys)
+    return _get(_runtime_config['parameters'], keys.split('.'))
 
 
-def get_default_par(*keys):
+def get_default_par(keys: str):
     """Get a default parameter."""
-    return _get(_default_config, keys)
+    return _get(_default_config['default-parameters'], keys.split('.'))
 
 
 def execute():
