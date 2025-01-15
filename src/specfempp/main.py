@@ -71,6 +71,20 @@ def _get(target: dict, keys: list[str]):
     return None
 
 
+def _del(target: dict, keys: list[str]):
+    """Delete a key from a nested dictionary."""
+    if len(keys) == 0:
+        raise ValueError("At least one key is required")
+
+    if keys[0] in target:
+        if len(keys) == 1:
+            return target.pop(keys[0])
+
+        return _del(target[keys[0]], keys[1:])
+
+    return None
+
+
 def _load_default():
     global _default_loaded
     if not _default_loaded:
@@ -120,6 +134,9 @@ def save_default_par(dst: str):
     with open(dst, "w") as f:
         yaml.dump(_default_config, f, sort_keys=False)
 
+def del_par(keys: str):
+    """Delete a parameter from the runtime configuration."""
+    _del(_runtime_config['parameters'], keys.split('.'))
 
 def get_par(keys: str):
     """Get a runtime parameter."""
