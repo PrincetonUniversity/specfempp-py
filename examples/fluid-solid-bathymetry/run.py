@@ -114,6 +114,29 @@ source_dict['sources'] = source_list
 del_par('databases.source-file')
 set_par('databases.source-dict', source_dict)
 
+# %%
+# Defining a receiver
+# -------------------
+# 
+# The next step is to define the receivers. This is done in the same way as the
+# sources. The default file is called `STATIONS` and is loaded during execution
+# via
+
+print(get_par('receivers.stations-file'))
+
+# %%
+# We can update the receivers programmatically by setting the the
+# ``stations-file`` parameter to a dictionary value. For this example, we want 
+# to define two receivers AA.S0001 and AA.S0002 at x = 10000.0 and z = 8082.0
+# and x = 10000.0 and z = 5472.0, respectively. 
+
+receiver_list = list()
+receiver1 = dict(network='AA', station='S0001', x=10000.0, z=8082.0)
+receiver2 = dict(network='AA', station='S0002', x=10000.0, z=5472.0)
+receiver_list.extend([receiver1, receiver2])
+
+set_par('receivers.stations-file', receiver_list)
+
 
 # %%
 # Running the simulation
