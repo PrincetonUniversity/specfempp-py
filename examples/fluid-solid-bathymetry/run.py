@@ -37,10 +37,9 @@ call("xmeshfem2D -p Par_file", shell=True)
 # Now, that we have a mesh, we can set up the simulation. This is entirely done
 # from python. We start by importing functions to load a parameter file
 # get and set parameters, and execute the simulation.
-
-
-# %%
 # So that we don't start completely from scratch, let's load a parameter file
+# that is already set up for a fluid-solid simulation.
+
 config = Config("specfem_config.yml")
 
 # %%
@@ -54,8 +53,8 @@ print("NT:", config.get_par("simulation-setup.solver.time-marching.time-scheme.n
 # Let's set the number of time steps to 1000 and the time step size to 0.002.
 dt = 0.002
 nstep = 5000
-set_par('simulation-setup.solver.time-marching.time-scheme.dt', dt)
-set_par('simulation-setup.solver.time-marching.time-scheme.nstep', nstep)
+config.set_par('simulation-setup.solver.time-marching.time-scheme.dt', dt)
+config.set_par('simulation-setup.solver.time-marching.time-scheme.nstep', nstep)
 
 # %%
 # Defining a source
@@ -64,7 +63,7 @@ set_par('simulation-setup.solver.time-marching.time-scheme.nstep', nstep)
 # ``specfem2d``. The file is called `sources.yml` and is loaded during execution
 # via
 
-print(config.get_par("databases.source-file"))
+print(config.get_par("sources"))
 
 # %%
 # We can update the sources programmatically by setting the the ``source-file``
@@ -113,8 +112,7 @@ for i in range(number_of_sources_z):
 
 # Finally, we set the source-file parameter to the source dictionary
 source_dict["sources"] = source_list
-config.del_par("databases.source-file")
-config.set_par("databases.source-dict", source_dict)
+config.set_par("sources", source_dict)
 
 # %%
 # Defining a receiver
@@ -124,7 +122,7 @@ config.set_par("databases.source-dict", source_dict)
 # sources. The default file is called `STATIONS` and is loaded during execution
 # via
 
-print(config.get_par("receivers.stations-file"))
+print(config.get_par("receivers.stations"))
 
 # %%
 # We can update the receivers programmatically by setting the the
@@ -133,11 +131,11 @@ print(config.get_par("receivers.stations-file"))
 # and x = 10000.0 and z = 5472.0, respectively.
 
 receiver_list = list()
-receiver1 = dict(network="AA", station="S0001", x=10000.0, z=8082.0)
-receiver2 = dict(network="AA", station="S0002", x=10000.0, z=5472.0)
+receiver1 = dict(network="AA", station="S0003", x=10000.0, z=8082.0)
+receiver2 = dict(network="AA", station="S0004", x=10000.0, z=5472.0)
 receiver_list.extend([receiver1, receiver2])
 
-config.set_par("receivers.stations-file", receiver_list)
+config.set_par("receivers.stations", receiver_list)
 
 
 # %%
@@ -212,6 +210,6 @@ def plot_snapshots(directory):
           ax[i].text(0.05, 0.925, f"T={np.round(i*dt,4)}s", fontsize=8, color="black",
                      transform=ax[i].transAxes, ha="left", va="top")
     plt.subplots_adjust(wspace=0.0, hspace=0.0, left=0.01, right=0.99, top=0.99, bottom=0.01)
-    plt.show()
+    plt.show(block=False)
     
 plot_snapshots("OUTPUT_FILES/results")
