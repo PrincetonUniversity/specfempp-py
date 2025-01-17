@@ -1,5 +1,5 @@
-# %% Fluid-Solid boundary
-# ====================
+# %% Fluid-Solid boundary 
+# =======================
 #
 # This example demonstrates how to run a fluid-solid simulation and define
 # sources and receivers from Python instead of using `Par_file` and
@@ -52,8 +52,10 @@ print("NT:", config.get_par("simulation-setup.solver.time-marching.time-scheme.n
 
 # %%
 # Let's set the number of time steps to 1000 and the time step size to 0.002.
-config.set_par("simulation-setup.solver.time-marching.time-scheme.dt", 0.002)
-config.set_par("simulation-setup.solver.time-marching.time-scheme.nstep", 5000)
+dt = 0.002
+nstep = 5000
+set_par('simulation-setup.solver.time-marching.time-scheme.dt', dt)
+set_par('simulation-setup.solver.time-marching.time-scheme.nstep', nstep)
 
 # %%
 # Defining a source
@@ -143,3 +145,73 @@ config.set_par("receivers.stations-file", receiver_list)
 # ----------------------
 
 execute(config)
+
+# %%
+# Plotting the results
+# --------------------
+#
+# We can now read the traces and plot them. The traces are stored in the
+# `OUTPUT_FILES/results` directory. We can use the `obspy` library to read the
+# traces and plot them.
+
+import glob
+import os
+import numpy as np
+import obspy
+import matplotlib.pyplot as plt
+
+def get_traces(directory):
+    traces = []
+    files = glob.glob(directory + "/*.sem*")
+    ## iterate over all seismograms
+    for filename in files:
+        station_name = os.path.splitext(filename)[0]
+        station_name = station_name.split("/")[-1]
+        trace = np.loadtxt(filename, delimiter=" ")
+        starttime = trace[0, 0]
+        dt = trace[1, 0] - trace[0, 0]
+        traces.append(
+            obspy.Trace(
+                trace[:, 1],
+                {"network": station_name, "starttime": starttime, "delta": dt},
+            )
+        )
+
+    stream = obspy.Stream(traces)
+
+    return stream
+
+
+stream = get_traces("OUTPUT_FILES/results")
+fig = plt.figure(figsize=(10, 8))
+stream.plot(fig=fig)
+plt.show(block=False)
+
+# %%
+# We can also load the wavefield snapshots and plot them. The snapshots are
+# stored in the `OUTPUT_FILES/results` directory. We can use the `matplotlib`
+# library to plot them.
+
+import matplotlib.pyplot as plt
+
+def plot_snapshots(directory):
+    files = glob.glob(directory + "/*.png")
+    files.sort()
+    N = len(files)
+    Nx = np.ceil(np.sqrt(N)).astype(int)
+    Ny = np.ceil(N / Nx).astype(int)
+    fig, ax = plt.subplots(Nx, Ny, figsize=(10, 6))
+    ax = ax.flatten()
+    for i in range(Nx*Ny):
+        if i >= N:
+            ax[i].axis("off")
+        else:
+          img = plt.imread(files[i])
+          ax[i].imshow(img[700:1900,100:-100,:])
+          ax[i].axis("off")
+          ax[i].text(0.05, 0.925, f"T={np.round(i*dt,4)}s", fontsize=8, color="black",
+                     transform=ax[i].transAxes, ha="left", va="top")
+    plt.subplots_adjust(wspace=0.0, hspace=0.0, left=0.01, right=0.99, top=0.99, bottom=0.01)
+    plt.show()
+    
+plot_snapshots("OUTPUT_FILES/results")
