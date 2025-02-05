@@ -85,8 +85,11 @@ class Config:
     # whether default file specified by C++ has been loaded
     _default_loaded = False
 
-    def __init__(self, src: str | None = None):
-        if src is not None:
+    def __init__(self, src: str | dict | None = None):
+        if isinstance(src, dict):
+            self.set_pars(src)
+
+        elif isinstance(src, str):
             self.load_par(src)
 
     def _load_default(self):
@@ -97,9 +100,18 @@ class Config:
             except FileNotFoundError:
                 pass
             self._default_loaded = True
+    
+    def set_pars(self, pars: dict):
+        if "parameters" not in self._runtime_config:
+            self._runtime_config["parameters"] = {}
+
+        _merge(self._runtime_config["parameters"], pars)
 
     def set_par(self, keys: str, val):
         """Set runtime parameters."""
+        if "parameters" not in self._runtime_config:
+            self._runtime_config["parameters"] = {}
+
         _set(self._runtime_config["parameters"], keys.split("."), val)
 
     def set_default_par(self, keys: str, val):
