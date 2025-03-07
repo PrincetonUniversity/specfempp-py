@@ -3,7 +3,7 @@
 Originally taken from GF3D.
 
 """
-
+from copy import deepcopy
 from collections import OrderedDict
 
 
@@ -343,7 +343,7 @@ def get_par_file(parfile: str, savecomments: bool = False, verbose: bool = True)
 def write_par_file(pardict: OrderedDict, par_file: str | None = None, write_comments: bool = True):
     
     # Deep copy the dictionary
-    pardict = pardict.copy()
+    pardict = deepcopy(pardict)
 
     # If output file is provided open a file to write
     if par_file is not None:
