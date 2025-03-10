@@ -132,7 +132,7 @@ class Config:
             _merge(self._default_config, yaml.safe_load(f))
 
     def save_par(self, dst: str):
-        """Load runtime parameters from a YAML file."""
+        """Save runtime parameters to a YAML file."""
         with open(dst, "w") as f:
             yaml.dump(self._runtime_config, f, sort_keys=False)
 
