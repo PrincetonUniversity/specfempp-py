@@ -78,9 +78,9 @@ def create_sources(angle, vp: float,
                 # Since z is counted upwards, we need to check if the source is 
                 # we need to subtract the bathymetry from the top interface
                 # to get zoffset from bottom interface
-                # The 2*dz buffer is added to make sure the source is not too 
+                # The dz buffer is added to make sure the source is not too 
                 # close to the bathymetry
-                if (fz - bathy_at_x - 2*dz) < z:
+                if (fz - bathy_at_x - dz) < z:
                     break
             # Otherwise break if the source is above the top interface
             else:

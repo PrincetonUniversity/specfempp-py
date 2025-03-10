@@ -107,7 +107,7 @@ def axes_from_axes(
 
 
 
-def plot_snapshots(directory):
+def plot_snapshots(directory, dt):
     import glob
     files = glob.glob(directory + "/*.png")
     files.sort()
