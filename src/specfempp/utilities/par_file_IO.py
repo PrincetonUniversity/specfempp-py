@@ -3,6 +3,7 @@
 Originally taken from GF3D.
 
 """
+import re
 from copy import deepcopy
 from collections import OrderedDict
 
@@ -89,6 +90,9 @@ def par_file2par(value: str, verbose: bool = False) -> float | str | int | bool:
     float | str | int | bool
         output value
     """
+    
+    # To catch float values with exponents
+    weird_float_pattern = r'd[\+\-]\d{2}'
 
     if value == ".true.":
         rvalue = True
@@ -98,6 +102,11 @@ def par_file2par(value: str, verbose: bool = False) -> float | str | int | bool:
 
     elif "d0" in value:
         rvalue = float(value.replace("d0", "0"))
+        
+    elif match := re.findall(weird_float_pattern, value):
+        if len(match) > 1:
+            raise ValueError(f'More than one match found in {value}')
+        rvalue = float(value.replace("d", "e"))
 
     elif checkInt(value):
         rvalue = int(value)
@@ -187,12 +196,21 @@ def get_par_file(parfile: str, savecomments: bool = False, verbose: bool = True)
     model_counter = 0
     regions = []
     region_counter = 0
+    receiversets = dict()
+    receiversets["nrec"] = []
+    receiversets["xdeb"] = []
+    receiversets["zdeb"] = []
+    receiversets["xfin"] = []
+    receiversets["zfin"] = []
+    receiversets["record_at_surface_same_vertical"] = []
+    receiver_counter = 0
 
     with open(parfile, 'r') as f:
         for line in f.readlines():
 
             if verbose:
                 print(line.strip())
+                
 
             # Check for comment by removing leading (all) spaces
             if '#' == line.replace(' ', '')[0]:
@@ -231,25 +249,33 @@ def get_par_file(parfile: str, savecomments: bool = False, verbose: bool = True)
                         noncounter += 1
 
                 # Get key and value
-                key, val = line.split('=')[:2]
+                key, value = line.split('=')[:2]
                 key = key.replace(' ', '')
 
                 # Save guard if someone puts a comment behind a value
-                if '#' in val:
-                    val, cmt = val.split('#')
+                if '#' in value:
+                    value, cmt = value.split('#')
                 else:
                     cmt = None
 
-                val = val.strip()
+                value = value.strip()
 
-                # Add key and value to dictionary
-                pardict[key] = par_file2par(val, verbose=verbose)
+                value = par_file2par(value.strip(), verbose=verbose)
+                
+                if line.split()[0] in ['nrec', 'xdeb', 'zdeb', 'xfin', 'zfin', 'record_at_surface_same_vertical']:
+                
+                    receiversets[key].append(value)
+                
+                else: 
+                    # Add key and value to dictionary
+                    pardict[key] = value
 
                 # save comment behind value
                 if savecomments:
                     if cmt is not None:
                         pardict[f'{key}-comment'] = cmt.strip()
-                        
+
+
             elif checkInt(line[0]):
                 
                 # split line into list of strings
@@ -337,6 +363,14 @@ def get_par_file(parfile: str, savecomments: bool = False, verbose: bool = True)
     elif len(regions) != pardict.nbregions:
         raise ValueError('No regions found in parfile.')
     
+    # Add receiver sets to dictionary
+    for key in receiversets.keys():
+        if len(receiversets[key]) != pardict['nreceiversets']:
+            raise ValueError(f'Number of values in rset dict for value {key} does not match nreceiversets.')
+        
+    # Add the receiver set dict to the pardict
+    pardict["receiversets"] = receiversets
+    
     return pardict
 
 
@@ -362,6 +396,11 @@ def write_par_file(pardict: OrderedDict, par_file: str | None = None, write_comm
                 else:
                     for line in value:
                         print(line.strip())
+                        
+        # Skip models and regions because they are written right after nbmodels
+        # and nbregions
+        elif key=='models' or key=='regions':
+            continue
                         
         elif key=='nbmodels':
             
@@ -392,9 +431,33 @@ def write_par_file(pardict: OrderedDict, par_file: str | None = None, write_comm
                 outstr += ' '.join([par2par_file(x) for x in region]) + '\n'
             
             f.write(outstr)
-            
-        elif key=='models' or key=='regions':
+
+        # The receiver sets are written right after the rec_normal_to_surface
+        elif key=='receiversets':
             continue
+
+        elif key=='rec_normal_to_surface':
+            
+            # Write receiver sets
+            outstr = f"{key:31s} = {par2par_file(value):<s}\n"
+            f.write(outstr)
+            
+            
+            # Write receiver sets after rec_normal_to_surface if nreceiversets > 0
+            if pardict["nreceiversets"] > 0:
+                nreceiversets = pardict["nreceiversets"]
+                f.write('\n')
+                for i in range(nreceiversets):
+                    outstr = f"# Receiver set {i+1}\n"
+                    f.write(outstr)
+                    for key in pardict["receiversets"].keys():
+                        
+                        if len(pardict["receiversets"][key]) != nreceiversets:
+                            raise ValueError(f'Number of values in rset dict for value {key} does not match nreceiversets.')
+                            
+                        outstr = f"{key:31s} = {pardict['receiversets'][key][i]}\n"
+                        f.write(outstr)
+                    f.write('\n')                    
             
         else:
 
