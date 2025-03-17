@@ -6,7 +6,7 @@ from .config import Config
 from .execute import execute
 
 if _initialize([]):
-    # atexit.register(_finalize)
+    atexit.register(_finalize)
 
 
 __all__ = [
