@@ -17,6 +17,7 @@ import matplotlib.gridspec as gridspec
 import numpy as np
 import matplotlib.pyplot as plt
 
+import matplotlib.colors as mcolors
 from matplotlib.colors import Normalize
 import matplotlib.dates as mdates
 
@@ -198,6 +199,9 @@ def plot_bathymetry(bathymetry, ax=None, cmap=None, norm=None, **kwargs):
         fig, ax = plt.subplots()
     
     # Create topographic colormap and norm
+    if norm == None and cmap == None:
+        cmap, norm = topography_cmap_and_norm()
+        
     if norm is None:
         norm = TwoSlopeNorm(vmin=-6000, vcenter=0, vmax=8000)
     elif norm == 'linear':
@@ -663,7 +667,28 @@ def write_topography_file(topography_file, offset_in_m, depth_in_m, bathymetry_i
         # Write the element header for layer 2
         f.write("#\n# layer number 2 (top, acoustic layer)\n#\n")
         f.write(f" {nupper}\n")
+      
+def test_cmap_and_norm():
         
+    # invent some data (height in meters relative to sea level)
+    data = np.linspace(-10000,8000,15**2).reshape((15,15))
+
+    cmap, norm = topography_cmap_and_norm()
+    # blues = plt.get_cmap()
+    fig = plt.figure()
+    ax = plt.axes()
+    im = ax.imshow(data, norm=norm, cmap=cmap)
+    cbar = fig.colorbar(im, ax=ax)
+      
+    
+def topography_cmap_and_norm():
+    colors_undersea = plt.cm.Blues_r(np.linspace(0, 0.85,173)) #512
+    colors_land = plt.cm.terrain(np.linspace(0.25, 1, 87))
+    # combine them and build a new colormap
+    colors = np.vstack((colors_undersea, colors_land))
+    cut_terrain_map = mcolors.LinearSegmentedColormap.from_list('cut_terrain', colors)
+    norm = sfplot.FixPointNormalize(sealevel=0, vmin=-8000, vmax=4000, col_val=0.5)
+    return cut_terrain_map, norm
 
 
 def plot_summary(station_lat, station_lon, event_lat, event_lon,
