@@ -1,12 +1,8 @@
 import obspy
 import io
 
-from obspy.clients.fdsn import Client as fdsnClient
 from obspy.core import UTCDateTime
-from obspy import read_events
 import requests
-import csv
-import xml.etree.ElementTree as ET
 
 
 def get_gcmt(starttime: UTCDateTime | None = None, 

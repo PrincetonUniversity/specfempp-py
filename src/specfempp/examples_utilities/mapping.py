@@ -407,4 +407,4 @@ def plot_station_event_geometry(event_lat, event_lon, station_lat, station_lon):
     )
 
     # Show the figure
-    fig.show()
+    return fig

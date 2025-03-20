@@ -8,7 +8,6 @@ from matplotlib.cm import ScalarMappable
 import typing as tp
 from matplotlib.axes import Axes
 import matplotlib.patheffects as path_effects
-import matplotlib.colors as mcolors
 import matplotlib
 
 
@@ -143,10 +142,12 @@ def plot_snapshots(directory, dt):
         if i >= N:
             ax[i].axis("off")
         else:
+          timestep = int(files[i].split("/")[-1].split(".")[0][8:])
           img = plt.imread(files[i])
+          
           ax[i].imshow(img[700:1900,100:-100,:])
           ax[i].axis("off")
-          ax[i].text(0.05, 0.925, f"T={np.round(i*dt,4)}s", fontsize=8, color="black",
+          ax[i].text(0.05, 0.925, f"T={np.round(timestep*dt,4)}s", fontsize=8, color="black",
                      transform=ax[i].transAxes, ha="left", va="top")
     plt.subplots_adjust(wspace=0.0, hspace=0.0, left=0.01, right=0.99, top=0.99, bottom=0.01)
     plt.show(block=False)
