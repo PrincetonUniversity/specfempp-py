@@ -142,7 +142,7 @@ def plot_snapshots(directory, dt):
         if i >= N:
             ax[i].axis("off")
         else:
-          timestep = int(files[i].split("/")[-1].split(".")[0][8:])
+          timestep = int(files[i].split("/")[-1].split(".")[0][9:])
           img = plt.imread(files[i])
           
           ax[i].imshow(img[700:1900,100:-100,:])

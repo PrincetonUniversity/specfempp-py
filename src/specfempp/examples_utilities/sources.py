@@ -125,4 +125,4 @@ def plot_sources(sources: dict):
     plt.ylabel('z (m)')
     plt.title('Source locations')
     plt.axis('equal')
-    plt.show()
+    plt.show(block=False)

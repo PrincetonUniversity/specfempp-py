@@ -817,4 +817,4 @@ def plot_summary(station_lat, station_lon, event_lat, event_lon,
     plt.xlabel('Offset (m)')
     plt.ylabel('Depth (m)')
 
-    plt.show()
+    plt.show(block=False)
