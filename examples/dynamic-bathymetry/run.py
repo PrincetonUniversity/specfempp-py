@@ -12,6 +12,8 @@
 # The example first gets the event provided an approximate location, time_frame
 # and magnitude. It'll then get the Mermaid location based on coordinate
 
+%load_ext autoreload
+%autoreload 2
 
 import obspy
 import matplotlib.pyplot as plt
@@ -26,9 +28,9 @@ plt.ion()
 # 
 
 # Event location
-approx_event_lat =  -7.310
-approx_event_lon =  +119.750
-approx_event_mag = 6.5
+approx_event_lat =   -7.310
+approx_event_lon = +119.750
+approx_event_mag =    6.5
 
 # Event time span
 t1 = obspy.UTCDateTime("2018-08-17T00:00:00")
@@ -127,8 +129,8 @@ import specfempp.examples_utilities.mapping as mapping
 # ### Event and station geometry using PyGMT
 
 
-fig = mapping.plot_station_event_geometry(event_lat, event_lon, station_lat, station_lon)
-fig.show()
+# fig = mapping.plot_station_event_geometry(event_lat, event_lon, station_lat, station_lon)
+# fig.show()
 
 # %%
 # Now, to the bathymetry around the station. We will first get map extents around
@@ -347,6 +349,13 @@ config = Config({
         "simulation-mode": {
             "forward": {
                 "writer": {
+                    "display": {
+                        "directory": "OUTPUT_FILES/results",
+                        "field": "displacement",
+                        "format": "PNG",
+                        "simulation-field": "forward",
+                        "time-interval": 200
+                    },
                     "seismogram": {
                         "directory": "OUTPUT_FILES/results",
                         "format": "ascii"
@@ -456,3 +465,5 @@ dt = config.get_par('simulation-setup.solver.time-marching.time-scheme.dt')
 plot.plot_snapshots("OUTPUT_FILES/results", dt)
 
 plt.show(block=True)
+
+# %%

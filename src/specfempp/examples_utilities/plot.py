@@ -128,7 +128,6 @@ class FixPointNormalize(matplotlib.colors.Normalize):
         return np.ma.masked_array(np.interp(value, self.x, self.y))
 
 
-
 def plot_snapshots(directory, dt):
     import glob
     files = glob.glob(directory + "/*.png")
