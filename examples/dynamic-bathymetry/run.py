@@ -1,10 +1,9 @@
-#!/usr/bin/env python
+# %%
+# #!/usr/bin/env python
 # coding: utf-8
 
+# %%
 # # SPECFEM++ with Ivy's custom 1D bathymetry profiles
-# 
-# 
-
 # 
 # In the following notebook, we will show how to use the SPECFEM++ software with
 # custom 1D bathymetry profiles. We will use the example of the 1D bathymetry
@@ -14,21 +13,17 @@
 # and magnitude. It'll then get the Mermaid location based on coordinate
 
 
-# get_ipython().run_line_magic('load_ext', 'autoreload')
-# get_ipython().run_line_magic('autoreload', '2')
-
 import obspy
 import matplotlib.pyplot as plt
 from specfempp.examples_utilities.get_gcmt import get_gcmt
 plt.ion()
-# 
+
+ 
+# %% 
 # ## Downloading event information
 # 
 # Before we start looking at the bathymetry we need to find the event
 # 
-
-# In[2]:
-
 
 # Event location
 approx_event_lat =  -7.310
@@ -39,9 +34,7 @@ approx_event_mag = 6.5
 t1 = obspy.UTCDateTime("2018-08-17T00:00:00")
 t2 = obspy.UTCDateTime("2018-08-18T00:00:00")
 
-
-# In[3]:
-
+#%%
 
 # Using SPUD to download the QuakeML catalog file and return event
 gcmt = get_gcmt(t1, t2, 
@@ -57,10 +50,8 @@ event_time = gcmt.origins[0].time
 event_mag = gcmt.magnitudes[0].mag
 
 
+# %%
 # ### Event information:
-
-# In[4]:
-
 
 print( f"Event Lat:   {event_lat}")
 print( f"Event Lon:   {event_lon}")
@@ -69,40 +60,32 @@ print( f"Event Time:  {event_time}")
 print( f"Event Mag:   {event_mag}")
 
 
+# %%
 # ## Downloading station information
-# 
 
-# 
 # Now that we have gathered the event information, we can collect the metadata
 # for the MERMAID hydrophone (Network code : `MH`) and the station code `P0009`.
 # 
 # First, let's look at the the info we can get from `obspy`.
 
-# In[5]:
-
-
 # Mermaid ID always 5 (see https://www.fdsn.org/networks/detail/MH/)
 mermaid_network_code = "MH"
 mermaid_station_code = "P0009"
 
-
+# %%
+# ### Station information from IRIS
 from obspy.clients.fdsn import Client
 client = Client("IRIS")
 inv = client.get_stations(network=mermaid_network_code, starttime=t1, endtime=t2, level="response")
 inv.select(station=mermaid_station_code)
 
-
+# %%
 # This is sadly not enough information to get the exact location of the station.
 # Since the inventory/`station.xml` file does not contain contiuous records of the
 # location of the station. We will have to use the Princeton MERMAID database to
 # get the exact location of the station.
 # 
-# 
-
 # ### Getting the exact location of the station
-
-# In[6]:
-
 
 import specfempp.examples_utilities.mermaid as mermaid
 
@@ -113,17 +96,14 @@ mermaid_metadata = mermaid.download_position(mermaid_station_code)
 station_lon_mermaid, station_lat_mermaid, station_depth_mermaid = mermaid.get_location(mermaid_metadata, event_time)
 print(f"Station Location: {station_lat_mermaid}, {station_lon_mermaid}, {station_depth_mermaid}")
 
-
+# %%
 # This is the interpolated location of `P0009` from the Princeton MERMAID database.
 # However, Joel Simon has computed a more accurate location for the station with
 # additional locations of the station. So, for the purpose of this example, we will
 # use the location provided by Joel Simon that has been given to me by Ivy.
-# 
-
+#
 # ### Comparing to the locations Ivy used in the paper (from Joel Simon)
-
-# In[7]:
-
+#
 
 # Information provided by Ivy to reproduce the results of the paper.
 station_lat= -12.0025 
@@ -137,26 +117,20 @@ print(f"Station Lat:   {station_lat:>10.4f} <-> {station_lat_mermaid:>10.4f}")
 print(f"Station Lon:   {station_lon:>10.4f} <-> {station_lon_mermaid:>10.4f}")
 print(f"Station Depth: {station_depth:>10.4f} <-> {station_depth_mermaid:>10.4f}")
 
-
-
+# %%
 # Now that we have both station and event information, we can plot the geometry
 # using `pygmt`.
 
-# In[8]:
-
-
 import specfempp.examples_utilities.mapping as mapping
 
-
+# %%
 # ### Event and station geometry using PyGMT
-
-# In[9]:
 
 
 fig = mapping.plot_station_event_geometry(event_lat, event_lon, station_lat, station_lon)
 fig.show()
 
-
+# %%
 # Now, to the bathymetry around the station. We will first get map extents around
 # the MERMAID and the event, the complete Mermaid track, and the local extent
 # around the MERMAID.
@@ -174,9 +148,6 @@ fig.show()
 # buffer of 5% and fixing the short end to create a 2 to 1 aspect ratio.
 # 
 
-# In[10]:
-
-
 import specfempp.examples_utilities.mermaid as mermaid
 import matplotlib.dates as mdates
 
@@ -192,15 +163,12 @@ event_station_extent = mapping.get_extent(event_lat, event_lon, station_lat, sta
 # Fix the extent for ok map aspect ratio
 event_station_extent = mapping.fix_extent(event_station_extent)
 
-
+# %%
 # The next step is defining the line around the Mermaid along which we want to 
 # extract the bathymetry. As defined in Ivy's paper the line is selected along the
 # backazimuth of the event and 10 km on either side of the station.
 
-# ### Getting the line along which to interpolate the bathymetry
-
-# In[11]:
-
+# Getting the line along which to interpolate the bathymetry
 
 dist_in_m, az, baz = obspy.geodetics.gps2dist_azimuth(event_lat, event_lon, station_lat, station_lon)
 
@@ -212,9 +180,7 @@ npts = 501
 line_offset, line_latitudes, line_longitudes = \
     mapping.get_line(station_lat, station_lon,width, npts, baz)
 
-
-# In[12]:
-
+# %%
 
 # Get the line_extent
 line_extent = mapping.get_extent(line_latitudes[0], line_longitudes[0],
@@ -224,22 +190,18 @@ line_extent = mapping.get_extent(line_latitudes[0], line_longitudes[0],
 line_extent = mapping.fix_extent(line_extent, fraction=0.2)
 
 
-# In[13]:
-
+# %%
 
 print(f"Line Extent: {line_extent}")
 print(f"Line Longitudes: {line_longitudes[0]}, {line_longitudes[-1]}")
 print(f"Line Latitudes: {line_latitudes[0]}, {line_latitudes[-1]}")
 
-
+# %%
 # Now, before we map everything, let's extract the bathymetry around the mermaid
 # track for reference, and locally around the station to interpolate the
 # bathymetry along the line.
-
+#
 # ### Extracting bathymetry around the station
-
-# In[14]:
-
 
 import specfempp.examples_utilities.gebco as gebco
 
@@ -252,15 +214,12 @@ mermaid_bathymetry = gebco.get_bathymetry(mermaid_extent, split=False)
 # Local bathymetry around the station
 local_bathymetry = gebco.get_bathymetry(line_extent, split=False)
 
-
+# %%
 # Now that we the bathymetry we can interpolate the line bathymetry using the
 # `scipy.interpolate.griddata` function.
 # 
-
+#
 # ### Interpolating the bathymetry along the line
-
-# In[15]:
-
 
 line_offset, line_bathymetry, line_latitudes, line_longitudes = \
     gebco.bathymetryprofile(
@@ -269,13 +228,11 @@ line_offset, line_bathymetry, line_latitudes, line_longitudes = \
         input_lats=local_bathymetry['latitudes'], 
         input_bathy=local_bathymetry['elevation'])
 
-
+# %%
 # Now that the bathymetry is interpolated, we can plot a summary map of the
 # bathymetry around the station and the event along with the Mermaid track.
-
+#
 # ### Plotting the bathymetry around the station and event
-
-# In[16]:
 
 
 gebco.plot_summary(station_lat, station_lon, event_lat, event_lon,
@@ -285,13 +242,12 @@ gebco.plot_summary(station_lat, station_lon, event_lat, event_lon,
                    line_latitudes, line_longitudes)
 plt.pause(1)
 
+# %%
 # The final step before writing the necessary files and running the simulation is 
 # to compute the incidence angle of the plane wave impinging on the domain.
 # 
-
+#
 # ### Computing the incidence angle
-
-# In[17]:
 
 
 import obspy.taup
@@ -309,10 +265,8 @@ incidence_angle = arrivals[0].incident_angle
 
 print(f"Incidence Angle: {incidence_angle:.2f} degrees")
 
-
+# %%
 # ## Running the simulation with SPECFEM++
-# 
-
 # 
 # Now that we have the bathymetry and the incidence angle, we can run the
 # simulation with SPECFEM++ since we are able to generate the mesh file, the
@@ -322,10 +276,8 @@ print(f"Incidence Angle: {incidence_angle:.2f} degrees")
 # `Par_file` and updating the necessary parameters to adjust for size and
 # resolution of the mesh.
 
+#%%
 # ### Update Parameter file and Topography file
-
-# In[18]:
-
 
 from specfempp.utilities import get_par_file, write_par_file
 
@@ -336,49 +288,36 @@ par_dict["receiversets"]["nrec"], \
 par_dict["receiversets"]["zdeb"], \
 par_dict["receiversets"]["zfin"]
 
-
-# In[19]:
-
-
 # Update the par file # make sure that bathymetry values are positive here!
 gebco.update_par_file_extent(par_dict, line_offset[-1], 9600, 9600+line_bathymetry, verbose=True)
 
 # Write the par file
 write_par_file(par_dict, "Par_file", write_comments=True)
 
-
+# %%
 # Next, we need to write the topography file, which is a simple ASCII file with
 # the bathymetry values at each point in the mesh.
 # 
 
-# In[20]:
-
-
 gebco.write_topography_file("topography_file.dat", line_offset[-1], 9600, 9600+line_bathymetry, line_offset)
 
-
+# %%
 # Finally, we can run the mesher.
-
-# In[21]:
-
 
 from subprocess import call
 from os import makedirs
 
-
+# %%
 # ### Running the mesher
-
-# In[22]:
-
 
 # Create the output directory for the database files.
 makedirs("OUTPUT_FILES/results", exist_ok=True)
 call("xmeshfem2D -p Par_file", shell=True)
 
-
+# %%
 # We setup the file to run the simulation.
 
-# In[23]:
+
 from specfempp import Config, execute 
 
 config = Config({
@@ -408,13 +347,6 @@ config = Config({
         "simulation-mode": {
             "forward": {
                 "writer": {
-                    "display": {
-                        "directory": "OUTPUT_FILES/results",
-                        "field": "displacement",
-                        "format": "PNG",
-                        "simulation-field": "forward",
-                        "time-interval": 100
-                    },
                     "seismogram": {
                         "directory": "OUTPUT_FILES/results",
                         "format": "ascii"
@@ -436,13 +368,10 @@ config = Config({
     "sources": "line_sources.yaml"
 })
 
-
+# %%
 # We use the `create_sources` function, which relies on the P wave velocity and
 # the incidence angle. to compute the sequentially firing points sources that form
 # a line source that is observed as a plane wave at the station.
-
-# In[24]:
-
 
 from specfempp.examples_utilities import sources
 
@@ -457,11 +386,8 @@ plt.pause(1)
 # Set the source in the config
 config.set_par("sources", source_dict)
 
-
+# %%
 # Now we add the receivers to the simulation.
-
-# In[25]:
-
 
 receiver_list = list()
 receiver1 = dict(network="AA", station="S0003", x=10000.0, z=8082.0)
@@ -470,25 +396,24 @@ receiver_list.extend([receiver1, receiver2])
 
 config.set_par("receivers.stations", receiver_list)
 
-
-# In[26]:
-
-
+# %%
+# Write the config to file (just in case)
 config.save_par("./test_config.yaml")
 
-
-# In[ ]:
-
+# %%
+# Finally, we can run the simulation.
 from specfempp import execute 
 
 execute(config)
 
 
-
-
-
-# In[ ]:
-
+# %%
+# ## Post-processing the simulation
+#
+# Now that the simulation is done, we can plot the seismograms and the snapshots
+# of the simulation.
+#
+# ### Plotting the seismograms
 
 import glob
 import os
@@ -521,13 +446,13 @@ def get_traces(directory):
 stream = get_traces("OUTPUT_FILES/results")
 fig = plt.figure(figsize=(10, 8))
 stream.plot(fig=fig)
-plt.show(block=False)
 
 
-# In[ ]:
-
+# %%
+# ### Plotting the snapshots
 
 from specfempp.examples_utilities import plot
 dt = config.get_par('simulation-setup.solver.time-marching.time-scheme.dt')
 plot.plot_snapshots("OUTPUT_FILES/results", dt)
 
+plt.show(block=True)

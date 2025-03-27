@@ -99,7 +99,7 @@ def get_bathymetry(extent, split=False):
     import netCDF4 as nc 
     
     # Load bathymetry data    
-    dataset = nc.Dataset('gebco/gebco_2024.nc')
+    dataset = nc.Dataset('gebco/GEBCO_2024.nc')
 
     # Extract variables
     grid_lons = dataset.variables['lon'][:]
