@@ -135,7 +135,7 @@ def plot_snapshots(directory, dt):
     N = len(files)
     Nx = np.ceil(np.sqrt(N)).astype(int)
     Ny = np.ceil(N / Nx).astype(int)
-    fig, ax = plt.subplots(Nx, Ny, figsize=(10, 6))
+    fig, ax = plt.subplots(Nx, Ny, figsize=(10, 5))
     ax = ax.flatten()
     for i in range(Nx*Ny):
         if i >= N:

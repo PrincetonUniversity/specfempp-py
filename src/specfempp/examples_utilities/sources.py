@@ -80,7 +80,8 @@ def create_sources(angle, vp: float,
                 # to get zoffset from bottom interface
                 # The dz buffer is added to make sure the source is not too 
                 # close to the bathymetry
-                if (fz - bathy_at_x - dz) < z:
+                
+                if (fz - bathy_at_x - 5*dz) < z:
                     break
             # Otherwise break if the source is above the top interface
             else:
