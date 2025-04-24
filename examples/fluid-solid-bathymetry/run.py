@@ -40,7 +40,60 @@ call("xmeshfem2D -p Par_file", shell=True)
 # So that we don't start completely from scratch, let's load a parameter file
 # that is already set up for a fluid-solid simulation.
 
-config = Config("specfem_config.yml")
+config = Config({
+    "databases": {
+        "mesh-database": "OUTPUT_FILES/database.bin"
+    },
+    "header": {
+        "description": "Material systems : Elastic domain (1), Acoustic domain (1)\nInterfaces : Acoustic-elastic interface (1) (orientation horizontal with acoustic domain on top)\nSources : Moment-tensor (234)\nBoundary conditions : Neumann BCs on all edges\n",
+        "title": "fluid-solid-bathymetry"
+    },
+    "receivers": {
+        "angle": 0.0,
+        "nstep_between_samples": 10,
+        "seismogram-type": [
+            "pressure"
+        ],
+        "stations": "OUTPUT_FILES/STATIONS"
+    },
+    "run-setup": {
+        "number-of-processors": 1,
+        "number-of-runs": 1
+    },
+    "simulation-setup": {
+        "quadrature": {
+            "quadrature-type": "GLL4"
+        },
+        "simulation-mode": {
+            "forward": {
+                "writer": {
+                    "display": {
+                        "directory": "OUTPUT_FILES/results",
+                        "field": "displacement",
+                        "format": "PNG",
+                        "simulation-field": "forward",
+                        "time-interval": 100
+                    },
+                    "seismogram": {
+                        "directory": "OUTPUT_FILES/results",
+                        "format": "ascii"
+                    }
+                }
+            }
+        },
+        "solver": {
+            "time-marching": {
+                "time-scheme": {
+                    "dt": 0.001,
+                    "nstep": 32500,
+                    "type": "Newmark"
+                },
+                "type-of-simulation": "forward"
+            }
+        }
+    },
+    "sources": "line_sources.yaml"
+})
 
 # %%
 # The parameters can be inspected using the `get_par` function.
