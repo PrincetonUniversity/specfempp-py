@@ -1,12 +1,8 @@
 import obspy
 import io
 
-from obspy.clients.fdsn import Client as fdsnClient
 from obspy.core import UTCDateTime
-from obspy import read_events
 import requests
-import csv
-import xml.etree.ElementTree as ET
 
 
 def get_gcmt(starttime: UTCDateTime | None = None, 
@@ -72,7 +68,7 @@ def get_gcmt(starttime: UTCDateTime | None = None,
             print(err)
             continue
         
-        print(f'Getting event {quake_id}')
+        print(f'Getting SPUD event {quake_id}')
         quakeml = r.content.decode("utf-8")
         
         # Create in-memory file-like object
@@ -86,3 +82,14 @@ def get_gcmt(starttime: UTCDateTime | None = None,
         
         
     return obspy.Catalog(events)
+
+
+# Event location
+approx_event_lat =  -7.310
+approx_event_lon =  +119.750
+approx_event_mag = 6.5
+
+# Event time span
+t1 = obspy.UTCDateTime("2018-08-17T00:00:00")
+t2 = obspy.UTCDateTime("2018-08-18T00:00:00")
+

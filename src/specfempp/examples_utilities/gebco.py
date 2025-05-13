@@ -17,9 +17,17 @@ import matplotlib.gridspec as gridspec
 import numpy as np
 import matplotlib.pyplot as plt
 
+import matplotlib.colors as mcolors
 from matplotlib.colors import Normalize
 import matplotlib.dates as mdates
 
+mermaid_vertices = [(0.1, -.9), (0.1, -0.3), (0.25, -0.3), (0.4, 0),
+                    # right
+                    (0.25, 0.3), (0.1, 0.3), (0.1, 0.35), (0.05, 0.35),
+                    (0.05, 0.9),
+                    (-0.05, 0.9), (-0.05, 0.35), (-0.1, 0.35),  # left
+                    (-0.1, 0.3), (-0.25, 0.3), (-0.4, 0), (-0.25, -0.3),
+                    (-0.1, -0.3), (-0.1, -1), (0.1, -.9)]
 
 
 def download(remove_zip: bool = False, force: bool = False,
@@ -98,7 +106,7 @@ def get_bathymetry(extent, split=False):
     import netCDF4 as nc 
     
     # Load bathymetry data    
-    dataset = nc.Dataset('gebco/gebco_2024.nc')
+    dataset = nc.Dataset('gebco/GEBCO_2024.nc')
 
     # Extract variables
     grid_lons = dataset.variables['lon'][:]
@@ -198,6 +206,9 @@ def plot_bathymetry(bathymetry, ax=None, cmap=None, norm=None, **kwargs):
         fig, ax = plt.subplots()
     
     # Create topographic colormap and norm
+    if norm == None and cmap == None:
+        cmap, norm = topography_cmap_and_norm()
+        
     if norm is None:
         norm = TwoSlopeNorm(vmin=-6000, vcenter=0, vmax=8000)
     elif norm == 'linear':
@@ -663,8 +674,198 @@ def write_topography_file(topography_file, offset_in_m, depth_in_m, bathymetry_i
         # Write the element header for layer 2
         f.write("#\n# layer number 2 (top, acoustic layer)\n#\n")
         f.write(f" {nupper}\n")
+      
+def test_cmap_and_norm():
         
+    # invent some data (height in meters relative to sea level)
+    data = np.linspace(-10000,8000,15**2).reshape((15,15))
 
+    cmap, norm = topography_cmap_and_norm()
+    # blues = plt.get_cmap()
+    fig = plt.figure()
+    ax = plt.axes()
+    im = ax.imshow(data, norm=norm, cmap=cmap)
+    cbar = fig.colorbar(im, ax=ax)
+      
+    
+def topography_cmap_and_norm():
+    colors_undersea = plt.cm.Blues_r(np.linspace(0, 0.85,173)) #512
+    colors_land = plt.cm.terrain(np.linspace(0.25, 1, 87))
+    # combine them and build a new colormap
+    colors = np.vstack((colors_undersea, colors_land))
+    cut_terrain_map = mcolors.LinearSegmentedColormap.from_list('cut_terrain', colors)
+    norm = sfplot.FixPointNormalize(sealevel=0, vmin=-8000, vmax=4000, col_val=0.5)
+    return cut_terrain_map, norm
+
+
+def plot_mermaid_track(station_lat, station_lon, event_lat, event_lon,
+                       mermaid_metadata, mermaid_bathymetry):
+    # Create the figure
+    fig = plt.figure(figsize=(8, 3))
+
+    # Setup the plot grid
+    gs = gridspec.GridSpec(1, 3, width_ratios=[1, 0.025, 0.025], wspace=0.4)
+
+    # Get the map midpoint
+    _, mlon = mapping.get_midpoint(station_lat, station_lon, event_lat, event_lon)
+
+    # Plot the track bathymetry
+    ax = fig.add_subplot(gs[0,0], projection=ccrs.PlateCarree(mlon))
+
+    # Get extent of the track bathymetry
+    mermaid_extent = mapping.get_extent(
+        mermaid_bathymetry["latitudes"][0], mermaid_bathymetry["longitudes"][0],
+        mermaid_bathymetry["latitudes"][-1], mermaid_bathymetry["longitudes"][-1])
+
+    # Adjust the extent if it crosses the dateline
+    if mermaid_extent[0] > 0 and mermaid_extent[1] < 0:
+        mermaid_extent[1] += 360
+
+    # Set the extent
+    ax.set_extent(mermaid_extent)
+
+    # Plot the bathymetry
+    bathy_plot = plot_bathymetry(mermaid_bathymetry, ax = ax, transform=ccrs.PlateCarree())    
+
+    # Add gridlines
+    gl = ax.gridlines(draw_labels=True, zorder=-10,)
+    gl.left_labels = True
+    gl.right_labels = False
+    gl.top_labels = True
+    gl.bottom_labels = False
+
+    # Create colornorm for the trajectory
+    norm = Normalize(vmin=np.min(mermaid_metadata['datetime']), 
+                    vmax=np.max(mermaid_metadata['datetime']))
+
+    # Plot the trajectory
+    plt.plot(mermaid_metadata['lon'], mermaid_metadata['lat'], 'k', linewidth=5/1.5,
+             transform=ccrs.Geodetic())
+    _, sm = sfplot.xyz_line(mermaid_metadata['lon'], mermaid_metadata['lat'],
+                        mermaid_metadata['datetime'], cmap='grey', norm=norm,
+                        linewidth=2,
+                        transform=ccrs.Geodetic())
+
+    # Plot the mermaid location at the time of the event
+    ax.plot(station_lon, station_lat, 'rv', label='Mermaid', markeredgecolor='black',
+            markersize=10, transform=ccrs.Geodetic())
+
+    # Bathymetry colorbar
+    bathy_cax = fig.add_subplot(gs[0,1])
+    plt.colorbar(bathy_plot, label='Elevation (m)', cax=bathy_cax)
+    bathy_cax.yaxis.set_ticks_position('left')
+
+    # Mermaid colorbar
+    mermaid_cax = fig.add_subplot(gs[0,2])
+    fig.colorbar(sm, cax=mermaid_cax, label='Time', 
+                 format=mdates.DateFormatter("%Y-%m-%d"))
+
+def plot_local_bathymetry(station_lat, station_lon, event_lat, event_lon,
+                          local_bathymetry, line_latitudes, line_longitudes):
+    
+    # Create the figure
+    fig = plt.figure(figsize=(8, 3))
+    
+    # Setup the plot grid
+    gs = gridspec.GridSpec(1, 2, width_ratios=[1, 0.025], wspace=0.4)
+    
+    
+    # plot local bathymetry
+    ax = fig.add_subplot(gs[0,0], projection=ccrs.PlateCarree())
+    
+    # Get extent of the local bathymetry
+    bathymetry_extent = mapping.get_extent(
+        local_bathymetry["latitudes"][0], local_bathymetry["longitudes"][0],
+        local_bathymetry["latitudes"][-1], local_bathymetry["longitudes"][-1])
+    
+    # Adjust the extent if it crosses the dateline
+    if bathymetry_extent[0] > 0 and bathymetry_extent[1] < 0:
+        bathymetry_extent[1] += 360
+    
+    # Set the extent
+    ax.set_extent(bathymetry_extent)
+    
+    # Plot the bathymetry
+    lbathy = plot_bathymetry(local_bathymetry, ax=ax, 
+                             norm='linear', cmap='grey')
+    # Add gridlines
+    gl = ax.gridlines(draw_labels=True, zorder=-10,)
+    gl.left_labels = True
+    gl.right_labels = False
+    gl.top_labels = False
+    gl.bottom_labels = True
+    # Plot the line along the back azimuth of the event
+    
+    ax.plot(line_longitudes, line_latitudes,
+            'r-', label='Mermaid', linewidth=2, transform=ccrs.Geodetic())
+    
+    # Plot the mermaid location at the time of the event
+    ax.plot(station_lon, station_lat, 'rv', label='Mermaid', markeredgecolor='black',
+            markersize=10, transform=ccrs.Geodetic())
+    
+    # Bathymetry colorbar
+    local_cax = fig.add_subplot(gs[0,1])
+    fig.colorbar(lbathy, label='Elevation (m)', cax=local_cax)
+    local_cax.yaxis.set_ticks_position('left')
+    
+    # Plot the mermaid location at the time of the event
+    ax.plot(station_lon, station_lat, 'rv', label='Mermaid', markeredgecolor='black',
+            markersize=10, transform=ccrs.Geodetic())
+
+def plot_sources(sources: dict):
+    
+    import matplotlib.pyplot as plt
+
+    # plot sources
+    x = [source['moment-tensor']['x'] for source in sources['sources']]
+    z = [source['moment-tensor']['z'] for source in sources['sources']]
+    t = [source['moment-tensor']['Ricker']['tshift'] for source in sources['sources']]
+
+    # Create and show figure
+    plt.gca()
+    plt.scatter(x, z, c=t, cmap='viridis')
+    c = plt.colorbar()
+    c.set_label('Time shift (s)')
+
+def plot_bathymetry_along_offset(line_offset, line_bathymetry, source_dict):
+    
+    # Create the figure
+    fig = plt.figure(figsize=(8, 3))
+    
+    # Plot bathymetry along Offset
+    offset_ax = fig.add_subplot(1,1,1)
+    
+    # Set colors for ocean an crust
+    ocean_color = np.array([175, 205, 240])/255 # light blue
+    crust_color = np.array([175, 175, 175])/255 # light gray 
+    
+    # Plot the bathymetry along the offset
+    offset_ax.fill_between(line_offset, 9600, +line_bathymetry, 
+                           color=ocean_color, alpha=0.5)
+    offset_ax.fill_between(line_offset, 0, 9600+line_bathymetry,
+                           color=crust_color, alpha=0.5)
+    
+    # Plot the bathymetry line
+    offset_ax.plot(line_offset, 9600+line_bathymetry, 'k', linewidth=2,
+                   zorder=10)
+    
+    # Plot the depth of the mermaid hydrophone
+    # Plot markers
+    plt.plot(line_offset[len(line_offset)//2], 9600-1500, markersize=30,
+             marker=mermaid_vertices,
+             markeredgecolor='k', markerfacecolor='orange',
+             clip_on=True)
+    # Set the limits
+    plt.xlim(0, line_offset[-1])
+    plt.ylim(0, 9600)
+    
+    # Plot sources
+    plot_sources(source_dict)
+    
+    # Set the labels
+    plt.xlabel('Offset (m)')
+    plt.ylabel('Elevation (m)')
+    
 
 def plot_summary(station_lat, station_lon, event_lat, event_lon,
                  mermaid_metadata,
@@ -713,7 +914,7 @@ def plot_summary(station_lat, station_lon, event_lat, event_lon,
     _, sm = sfplot.xyz_line(mermaid_metadata['lon'], mermaid_metadata['lat'],
                         mermaid_metadata['datetime'], cmap='grey', norm=norm,
                         linewidth=4,
-                        transform=ccrs.Geodetic())    
+                        transform=ccrs.Geodetic())
 
     # Plot the mermaid location at the time of the event
     ax.plot(station_lon, station_lat, 'rv', label='Mermaid', markeredgecolor='black',
@@ -746,7 +947,7 @@ def plot_summary(station_lat, station_lon, event_lat, event_lon,
 
     # Plot the bathymetry
     lbathy = plot_bathymetry(local_bathymetry, ax=local_ax,
-                                norm='linear', cmap='grey')
+                             norm='linear', cmap='grey')
 
     # Add gridlines
     gl = local_ax.gridlines(draw_labels=True, zorder=-10,)
@@ -792,4 +993,4 @@ def plot_summary(station_lat, station_lon, event_lat, event_lon,
     plt.xlabel('Offset (m)')
     plt.ylabel('Depth (m)')
 
-    plt.show()
+    plt.show(block=False)

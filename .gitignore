@@ -1,6 +1,8 @@
 # local
 gebco*
 test.*
+.DS_Store
+*.html
 
 
 # Byte-compiled / optimized / DLL files

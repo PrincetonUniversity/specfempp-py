@@ -8,6 +8,7 @@ from matplotlib.cm import ScalarMappable
 import typing as tp
 from matplotlib.axes import Axes
 import matplotlib.patheffects as path_effects
+import matplotlib
 
 
 
@@ -106,6 +107,26 @@ def axes_from_axes(
     return newax
 
 
+class FixPointNormalize(matplotlib.colors.Normalize):
+    """ 
+    Inspired by https://stackoverflow.com/questions/20144529/shifted-colorbar-matplotlib
+    Subclassing Normalize to obtain a colormap with a fixpoint 
+    somewhere in the middle of the colormap.
+
+    This may be useful for a `terrain` map, to set the "sea level" 
+    to a color in the blue/turquise range. 
+    """
+    def __init__(self, vmin=None, vmax=None, sealevel=0, col_val = 0.21875, clip=False):
+        # sealevel is the fix point of the colormap (in data units)
+        self.sealevel = sealevel
+        # col_val is the color value in the range [0,1] that should represent the sealevel.
+        self.col_val = col_val
+        matplotlib.colors.Normalize.__init__(self, vmin, vmax, clip)
+        self.x = np.array([self.vmin, self.sealevel, self.vmax])
+        self.y = np.array([0, self.col_val, 1])
+    def __call__(self, value, clip=None):
+        return np.ma.masked_array(np.interp(value, self.x, self.y))
+
 
 def plot_snapshots(directory, dt):
     import glob
@@ -114,16 +135,18 @@ def plot_snapshots(directory, dt):
     N = len(files)
     Nx = np.ceil(np.sqrt(N)).astype(int)
     Ny = np.ceil(N / Nx).astype(int)
-    fig, ax = plt.subplots(Nx, Ny, figsize=(10, 6))
+    fig, ax = plt.subplots(Nx, Ny, figsize=(10, 5))
     ax = ax.flatten()
     for i in range(Nx*Ny):
         if i >= N:
             ax[i].axis("off")
         else:
+          timestep = int(files[i].split("/")[-1].split(".")[0][9:])
           img = plt.imread(files[i])
+          
           ax[i].imshow(img[700:1900,100:-100,:])
           ax[i].axis("off")
-          ax[i].text(0.05, 0.925, f"T={np.round(i*dt,4)}s", fontsize=8, color="black",
+          ax[i].text(0.05, 0.925, f"T={np.round(timestep*dt,4)}s", fontsize=8, color="black",
                      transform=ax[i].transAxes, ha="left", va="top")
     plt.subplots_adjust(wspace=0.0, hspace=0.0, left=0.01, right=0.99, top=0.99, bottom=0.01)
     plt.show(block=False)
