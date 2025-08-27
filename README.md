@@ -31,7 +31,7 @@ and install it using `pip`:
 
 ```bash
 pip install . \
-  -C cmake.define.ENABLE_SIMD=ON \
+  -C cmake.define.SPECFEM_ENABLE_SIMD=ON \
   -C cmake.define.Kokkos_ENABLE_ATOMICS_BYPASS=ON \
   -C cmake.define.Kokkos_ARCH_NATIVE=ON \
   -C cmake.define Kokkos_ENABLE_AGGRESSIVE_VECTORIZATION=ON 
