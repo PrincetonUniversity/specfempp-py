@@ -31,10 +31,10 @@ and install it using `pip`:
 
 ```bash
 pip install . \
-  -Ccmake.define.ENABLE_SIMD=ON \
-  -Ccmake.define.Kokkos_ENABLE_ATOMICS_BYPASS=ON \
-  -Ccmake.define.Kokkos_ARCH_NATIVE=ON \
-  -Ccmake.define Kokkos_ENABLE_AGGRESSIVE_VECTORIZATION=ON 
+  -C cmake.define.ENABLE_SIMD=ON \
+  -C cmake.define.Kokkos_ENABLE_ATOMICS_BYPASS=ON \
+  -C cmake.define.Kokkos_ARCH_NATIVE=ON \
+  -C cmake.define Kokkos_ENABLE_AGGRESSIVE_VECTORIZATION=ON 
 ```
 
 As you can see here we can set `CMake` options through `scikit-build`. Third and final step is installing `SPECFEM++-PY`. Download the repository:
